@@ -1,0 +1,57 @@
+import sys
+import requests
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QLineEdit, QPushButton, QMessageBox
+
+class WeatherApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Weather App')
+        self.setGeometry(100, 100, 400, 200)
+
+        self.api_key = 'c6226657a4d62d3721329d091884c0a5'
+
+        self.location_label = QLabel('Enter city name or ZIP code:')
+        self.location_input = QLineEdit()
+        self.weather_label = QLabel('')
+        self.get_weather_button = QPushButton('Get Weather')
+        self.get_weather_button.clicked.connect(self.get_weather)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.location_label)
+        layout.addWidget(self.location_input)
+        layout.addWidget(self.get_weather_button)
+        layout.addWidget(self.weather_label)
+
+        self.setLayout(layout)
+
+    def get_weather(self):
+        location = self.location_input.text()
+        url = f'http://api.openweathermap.org/data/2.5/weather?q={location}&appid={self.api_key}&units=metric'
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  
+            data = response.json()
+
+            if data['cod'] == 200:
+                weather_data = {
+                    'location': data['name'],
+                    'temperature': data['main']['temp'],
+                    'humidity': data['main']['humidity'],
+                    'conditions': data['weather'][0]['description']
+                }
+                self.weather_label.setText(f'Weather in {weather_data["location"]}: '
+                                            f'Temperature: {weather_data["temperature"]}°C, '
+                                            f'Humidity: {weather_data["humidity"]}%, '
+                                            f'Conditions: {weather_data["conditions"]}')
+            else:
+                QMessageBox.warning(self, 'Error', f'Error: {data["message"]}')
+        except requests.exceptions.HTTPError as err:
+            QMessageBox.warning(self, 'Error', f'HTTP error occurred: {err}')
+        except requests.exceptions.RequestException as err:
+            QMessageBox.warning(self, 'Error', f'Request error occurred: {err}')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    weather_app = WeatherApp()
+    weather_app.show()
+    sys.exit(app.exec_())
